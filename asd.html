@@ -399,20 +399,25 @@
     }
 
     // FIXED: High-Resolution, High-Contrast Dynamic QR Generation
+ // High-Resolution, High-Contrast Dynamic QR Generation linking to your live hosted page
     function generateDynamicQR() {
       const timestamp = new Date().toLocaleTimeString();
-      const qrData = `IKWATH BATCH CERTIFICATE\nID: ${selectedKwatha.id}\nRx: ${selectedKwatha.name}\nPeak Temp: ${selectedKwatha.prescribedBoilTempC}°C\nDispensed: ${selectedKwatha.waterTargetMl}g\nTime: ${timestamp}\nStatus: API VALID`;
+      
+      // 1. YOUR LIVE HOSTING URL GOES HERE (Replace with your actual GitHub Pages link)
+      const baseUrl = "https://[your-username].github.io/ikwath-sih-demo/certificate.html";
+      
+      // 2. Combine the URL with the live batch parameters
+      const qrDataUrl = `${baseUrl}?id=${selectedKwatha.id}&temp=${selectedKwatha.prescribedBoilTempC}&mass=${selectedKwatha.waterTargetMl}&time=${encodeURIComponent(timestamp)}`;
       
       new QRious({
         element: document.getElementById('qr-canvas'),
-        value: qrData,
-        size: 250,           // Rendered at high-res internally
+        value: qrDataUrl,    // Now it encodes a scannable web link instead of raw text!
+        size: 250,           
         background: 'white',
-        foreground: 'black', // Pure black for standard smartphone scanner support
-        level: 'L'           // Lower error correction creates larger, scannable blocks
+        foreground: 'black', 
+        level: 'L'           
       });
     }
-
     // High-Impact Addition: 3-Hour AFI Freshness Timer
     function startAFICountdown() {
       let timeLeft = totalTimerSeconds;
