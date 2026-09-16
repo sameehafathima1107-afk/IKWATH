@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iKwath Intelligent Decoction Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- QRious library for Dynamic Batch Certificates -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #030712;
+      color: #f3f4f6;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .app-viewport {
+      box-shadow: 0 0 50px -12px rgba(16, 185, 129, 0.25);
+    }
+    .ring-pulse {
+      animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.08); opacity: 0.4; }
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4 bg-gray-950">
+
+  <!-- Mobile App Form-Factor Container -->
+  <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden app-viewport min-h-[720px] max-h-[90vh] flex flex-col justify-between relative shadow-2xl">
+    
+    <!-- Top Persistent App Bar -->
+    <header class="px-5 py-4 bg-gray-950 border-b border-gray-800/80 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-black text-sm shadow-md shadow-emerald-500/20">
+          iK
+        </div>
+        <div>
+          <h1 class="text-sm font-bold text-white tracking-wide">iKwath OS</h1>
+          <span class="text-[10px] text-emerald-400 font-mono-code">ESP32-S3 Firmware</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="step-indicator" class="text-xs font-mono-code px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+          Step 1/5
+        </span>
+      </div>
+    </header>
+
+    <!-- Main Screens Container (Sequential App Pages) -->
+    <div class="flex-1 p-5 overflow-y-auto">
+
+      <!-- ==========================================
+           SCREEN 1: RFID POD DETECTION & SCAN
+           ========================================== -->
+      <section id="screen-1" class="space-y-6">
+        <div class="text-center pt-3 pb-1">
+          <div class="w-20 h-20 mx-auto rounded-3xl bg-gray-950 border border-gray-800 flex items-center justify-center relative mb-4">
+            <i class="fa-solid fa-nfc-directional text-3xl text-emerald-400 ring-pulse"></i>
+          </div>
+          <h2 class="text-xl font-bold text-white tracking-tight">Insert Pod & Scan</h2>
+          <p class="text-xs text-gray-400 mt-1">Place your herbal pod against the RFID receiver pad</p>
+        </div>
+
+        <div class="space-y-3 pt-2">
+          <button onclick="simulateRFIDScan()" class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white rounded-2xl font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60">
+            <i class="fa-solid fa-wifi"></i> Scan RFID Pod (Auto-Detect)
+          </button>
+
+          <div class="flex items-center my-3">
+            <div class="flex-1 border-t border-gray-800"></div>
+            <span class="px-3 text-[11px] text-gray-500 uppercase tracking-widest font-mono-code">Or</span>
+            <div class="flex-1 border-t border-gray-800"></div>
+          </div>
+
+          <div class="bg-gray-950/70 border border-gray-800/80 rounded-2xl p-4 text-center space-y-2">
+            <div class="text-xs font-semibold text-gray-300">No RFID Tag on your Pod?</div>
+            <p class="text-[11px] text-gray-500">Manually select formulations directly from the classical API database.</p>
+            <button onclick="goToDatabaseSelect()" class="w-full py-2.5 px-4 bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-emerald-900/60 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 mt-2">
+              <i class="fa-solid fa-book-medical"></i> Select Predefined Kwatha
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 2: PHARMACOPOEIAL DATABASE DETAILS
+           ========================================== -->
+      <section id="screen-2" class="hidden space-y-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-mortar-pestle text-emerald-400"></i> Classical Kwatha Database
+          </h2>
+          <p class="text-xs text-gray-400">Select formulation with calibrated specs</p>
+        </div>
+        <div id="kwatha-database-list" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 3: RECIPE SPEC & FINAL CONFIG
+           ========================================== -->
+      <section id="screen-3" class="hidden space-y-5">
+        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono-code text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-900" id="spec-id"></span>
+            <span class="text-[10px] text-gray-400" id="spec-dosha"></span>
+          </div>
+          <h3 class="text-lg font-bold text-white" id="spec-name"></h3>
+          <p class="text-xs text-gray-400" id="spec-indication"></p>
+
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-800/80 font-mono-code text-xs">
+            <div class="bg-gray-900 p-2 rounded-lg">
+              <span class="text-[10px] text-gray-500 block">BOIL (MRIDU AGNI)</span>
+              <b class="text-emerald-400 text-sm" id="spec-boil-temp"></b>
+            </div>
+            <div class="bg-gray-900 p-2 rounded-lg">
+              <span class="text-[10px] text-gray-500 block">REDUCTION</span>
+              <b class="text-teal-400 text-sm" id="spec-reduction"></b>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-xs font-bold text-white">Final Dispense Temp</h4>
+            </div>
+            <span id="final-temp-readout" class="text-base font-black font-mono-code text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-lg border border-emerald-800">55 °C</span>
+          </div>
+          <div class="space-y-1">
+            <input type="range" min="40" max="75" value="55" step="1" id="final-temp-slider" oninput="updateFinalTemp(this.value)" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+          </div>
+        </div>
+
+        <button onclick="startBrewingProcess()" class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60">
+          <i class="fa-solid fa-play"></i> Start Gravimetric Extraction
+        </button>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 4: ACTIVE PROCESS IMPLEMENTATION
+           ========================================== -->
+      <section id="screen-4" class="hidden space-y-5">
+        <div class="text-center pt-2">
+          <span class="text-[10px] font-mono-code px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+            DECOCTION IN PROGRESS
+          </span>
+          <h3 class="text-lg font-bold text-white mt-2" id="brewing-title"></h3>
+        </div>
+
+        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 space-y-4 font-mono-code">
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="bg-gray-900/80 p-3 rounded-xl border border-gray-800">
+              <span class="text-[10px] text-gray-400 block">CHAMBER TEMP</span>
+              <span id="live-temp-display" class="text-2xl font-black text-emerald-400">25.0°C</span>
+              <span class="text-[10px] text-gray-500 block mt-0.5">Target: <span id="target-boil-display"></span></span>
+            </div>
+            <div class="bg-gray-900/80 p-3 rounded-xl border border-gray-800">
+              <span class="text-[10px] text-gray-400 block">LIQUID MASS</span>
+              <span id="live-mass-display" class="text-2xl font-black text-teal-400">400g</span>
+              <span class="text-[10px] text-gray-500 block mt-0.5">Yield: <span id="target-mass-display"></span></span>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-gray-400">Reduction Progress:</span>
+              <span class="text-emerald-400 font-bold" id="reduction-pct-display">0%</span>
+            </div>
+            <div class="w-full bg-gray-800 h-2.5 rounded-full overflow-hidden">
+              <div id="reduction-progress-bar" class="bg-emerald-400 h-full w-[0%] transition-all duration-200"></div>
+            </div>
+          </div>
+          
+          <div class="text-[11px] text-gray-400 flex items-center justify-between pt-1">
+            <span>Agitation Mode:</span>
+            <span class="text-white font-semibold" id="live-agitation-display">0.5 Hz Extraction</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SCREEN 5: EXTRACTION READY & DASHBOARD
+           ========================================== -->
+      <section id="screen-5" class="hidden space-y-4">
+        
+        <div class="bg-emerald-950/60 border border-emerald-700/60 rounded-2xl p-3 text-center space-y-1">
+          <h3 class="text-sm font-bold text-emerald-300"><i class="fa-solid fa-check-circle"></i> DECOCTION READY</h3>
+          <p class="text-[11px] text-gray-300">Extract dispensed at <span class="font-bold text-white" id="final-dispensed-temp">55 °C</span>.</p>
+        </div>
+
+        <!-- 3-Hour AFI Freshness Timer -->
+        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 text-center space-y-2 relative overflow-hidden">
+          <div class="text-[10px] font-bold text-amber-500 uppercase tracking-widest"><i class="fa-solid fa-clock"></i> AFI Potency Freshness Window</div>
+          <div id="timer-readout" class="text-4xl font-black font-mono-code text-white tracking-wider">03:00:00</div>
+          <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
+            <div id="timer-bar" class="bg-amber-400 h-full w-[100%] transition-all duration-1000"></div>
+          </div>
+          <p class="text-[9px] text-gray-500">Therapeutic bioactive window expires in 3 hours.</p>
+        </div>
+
+        <!-- Dynamic QR Batch Traceability -->
+        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
+          <div class="text-left">
+            <h4 class="text-xs font-bold text-white">Batch Certificate</h4>
+            <p class="text-[9px] text-gray-400 leading-tight mt-1">Scannable clinical data log.<br/>Encodes temp, mass & time.</p>
+          </div>
+          <div class="bg-white p-1.5 rounded flex items-center justify-center">
+             <!-- FIXED: Removed fixed width/height. Added responsive classes -->
+             <canvas id="qr-canvas" class="w-24 h-24 sm:w-28 sm:h-28"></canvas>
+          </div>
+        </div>
+
+        <!-- Zero Waste Cosmetic Cycle Button -->
+        <div class="pt-2">
+            <button onclick="triggerCosmeticCycle()" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-500 active:scale-[0.99] text-white rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-orange-900/60">
+              <i class="fa-solid fa-spa"></i> Create Hydrogel Face Mask
+            </button>
+            <p class="text-[9px] text-center text-gray-500 mt-2">Utilizes residual 80°C chamber heat + 3-5Hz Plunge</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Bottom Navigation Bar (App Status) -->
+    <footer class="px-5 py-3 bg-gray-950 border-t border-gray-800/80 flex items-center justify-between text-xs text-gray-500 font-mono-code">
+      <span id="footer-status">Status: Waiting for pod</span>
+      <button onclick="resetFlowToStart()" class="text-gray-400 hover:text-white">Restart</button>
+    </footer>
+
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. AYURVEDIC KASHAYAM PHARMACOPOEIA (AFI DATABASE)
+       ========================================================================= */
+    const KASHAYAM_DATABASE = [
+      {
+        id: "IK-POD-101",
+        name: "Dashamoola Kashayam",
+        dosha: "Vata-Kapha Hara",
+        indication: "Relief for musculoskeletal aches, puerperal fever, neuromuscular stiffness.",
+        waterInitialMl: 400,
+        waterTargetMl: 100,
+        prescribedBoilTempC: 88.0,
+      },
+      {
+        id: "IK-POD-102",
+        name: "Maharasnadi Kashayam",
+        dosha: "Vata Shamana",
+        indication: "Rheumatoid arthritis, sciatica, chronic hemiplegia, and joint contractures.",
+        waterInitialMl: 450,
+        waterTargetMl: 112,
+        prescribedBoilTempC: 87.5,
+      },
+      {
+        id: "IK-POD-103",
+        name: "Amrutottaram Kashayam",
+        dosha: "Pitta-Kapha Hara",
+        indication: "Chronic low-grade pyrexia, liver sluggishness, digestive metabolic reboot.",
+        waterInitialMl: 350,
+        waterTargetMl: 87,
+        prescribedBoilTempC: 86.5,
+      }
+    ];
+
+    /* =========================================================================
+       2. STATE VARIABLES
+       ========================================================================= */
+    let currentScreen = 1;
+    let selectedKwatha = null;
+    let chosenFinalTemp = 55;
+    let extractionInterval = null;
+    let timerInterval = null;
+    let totalTimerSeconds = 3 * 3600; // 3 Hours (AFI Standard)
+
+    /* =========================================================================
+       3. NAVIGATION & UI LOGIC
+       ========================================================================= */
+    function switchScreen(screenNum) {
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`screen-${i}`).classList.add("hidden");
+      }
+      document.getElementById(`screen-${screenNum}`).classList.remove("hidden");
+      currentScreen = screenNum;
+      document.getElementById("step-indicator").textContent = `Step ${screenNum}/5`;
+    }
+
+    function simulateRFIDScan() {
+      selectedKwatha = KASHAYAM_DATABASE[0];
+      populateRecipeSpec(selectedKwatha);
+      switchScreen(3);
+      document.getElementById("footer-status").textContent = `RFID Tag Detected: ${selectedKwatha.id}`;
+    }
+
+    function goToDatabaseSelect() {
+      renderDatabaseList();
+      switchScreen(2);
+      document.getElementById("footer-status").textContent = "Manual AFI DB Select";
+    }
+
+    function pickFromDatabase(id) {
+      selectedKwatha = KASHAYAM_DATABASE.find(k => k.id === id);
+      populateRecipeSpec(selectedKwatha);
+      switchScreen(3);
+      document.getElementById("footer-status").textContent = `Loaded: ${selectedKwatha.name}`;
+    }
+
+    function renderDatabaseList() {
+      const listContainer = document.getElementById("kwatha-database-list");
+      listContainer.innerHTML = "";
+      KASHAYAM_DATABASE.forEach(k => {
+        const item = document.createElement("div");
+        item.className = "bg-gray-950 border border-gray-800 hover:border-emerald-600/70 p-3.5 rounded-2xl cursor-pointer transition";
+        item.onclick = () => pickFromDatabase(k.id);
+        item.innerHTML = `
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-[10px] font-mono-code text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-900">${k.id}</span>
+            <span class="text-[10px] text-gray-400">${k.dosha}</span>
+          </div>
+          <h4 class="text-sm font-bold text-white">${k.name}</h4>
+          <p class="text-[11px] text-gray-400 line-clamp-2 mt-0.5">${k.indication}</p>
+          <div class="mt-2 pt-2 border-t border-gray-900 flex justify-between text-[10px] font-mono-code text-gray-500">
+            <span>Boil: ${k.prescribedBoilTempC.toFixed(1)}°C</span>
+            <span>Yield: ${k.waterTargetMl}g</span>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function populateRecipeSpec(k) {
+      document.getElementById("spec-id").textContent = k.id;
+      document.getElementById("spec-dosha").textContent = k.dosha;
+      document.getElementById("spec-name").textContent = k.name;
+      document.getElementById("spec-indication").textContent = k.indication;
+      document.getElementById("spec-boil-temp").textContent = k.prescribedBoilTempC.toFixed(1) + " °C";
+      document.getElementById("spec-reduction").textContent = k.waterInitialMl + "g → " + k.waterTargetMl + "g";
+      
+      document.getElementById("brewing-title").textContent = k.name;
+      document.getElementById("target-boil-display").textContent = k.prescribedBoilTempC.toFixed(1) + "°C";
+      document.getElementById("target-mass-display").textContent = k.waterTargetMl + "g";
+    }
+
+    /* =========================================================================
+       4. SIMULATION LOGIC: BREWING, QR, AND AFI TIMER
+       ========================================================================= */
+    function updateFinalTemp(val) {
+      document.getElementById("final-temp-readout").textContent = val + " °C";
+      chosenFinalTemp = val;
+    }
+
+    function startBrewingProcess() {
+      switchScreen(4);
+      document.getElementById("footer-status").textContent = "Mridu Agni Extraction Active...";
+      
+      let temp = 25.0;
+      let mass = selectedKwatha.waterInitialMl;
+      let progress = 0;
+      let step = 0;
+
+      // Simulate the brew over 5 seconds for the presentation demo
+      extractionInterval = setInterval(() => {
+        step++;
+        progress = (step / 5) * 100;
+        temp += (selectedKwatha.prescribedBoilTempC - 25.0) / 5;
+        mass -= (selectedKwatha.waterInitialMl - selectedKwatha.waterTargetMl) / 5;
+
+        document.getElementById("live-temp-display").textContent = temp.toFixed(1) + "°C";
+        document.getElementById("live-mass-display").textContent = mass.toFixed(0) + "g";
+        document.getElementById("reduction-pct-display").textContent = Math.round(progress) + "%";
+        document.getElementById("reduction-progress-bar").style.width = progress + "%";
+
+        if (step >= 5) {
+          clearInterval(extractionInterval);
+          setTimeout(() => finishExtraction(), 800);
+        }
+      }, 1000);
+    }
+
+    function finishExtraction() {
+      switchScreen(5);
+      document.getElementById("footer-status").textContent = "Traceability Logged. Ready.";
+      document.getElementById("final-dispensed-temp").textContent = chosenFinalTemp + " °C";
+      
+      generateDynamicQR();
+      startAFICountdown();
+    }
+
+    // FIXED: High-Resolution, High-Contrast Dynamic QR Generation
+    function generateDynamicQR() {
+      const timestamp = new Date().toLocaleTimeString();
+      const qrData = `IKWATH BATCH CERTIFICATE\nID: ${selectedKwatha.id}\nRx: ${selectedKwatha.name}\nPeak Temp: ${selectedKwatha.prescribedBoilTempC}°C\nDispensed: ${selectedKwatha.waterTargetMl}g\nTime: ${timestamp}\nStatus: API VALID`;
+      
+      new QRious({
+        element: document.getElementById('qr-canvas'),
+        value: qrData,
+        size: 250,           // Rendered at high-res internally
+        background: 'white',
+        foreground: 'black', // Pure black for standard smartphone scanner support
+        level: 'L'           // Lower error correction creates larger, scannable blocks
+      });
+    }
+
+    // High-Impact Addition: 3-Hour AFI Freshness Timer
+    function startAFICountdown() {
+      let timeLeft = totalTimerSeconds;
+      const display = document.getElementById("timer-readout");
+      const bar = document.getElementById("timer-bar");
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        let h = Math.floor(timeLeft / 3600);
+        let m = Math.floor((timeLeft % 3600) / 60);
+        let s = timeLeft % 60;
+        
+        display.textContent = 
+          (h < 10 ? "0" + h : h) + ":" + 
+          (m < 10 ? "0" + m : m) + ":" + 
+          (s < 10 ? "0" + s : s);
+          
+        bar.style.width = (timeLeft / totalTimerSeconds) * 100 + "%";
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          display.textContent = "EXPIRED";
+          display.style.color = "#ef4444"; // Red
+        }
+      }, 1000); // 1 real second tick for demo
+    }
+
+    // High-Impact Addition: Zero Waste Cosmetic Plunge
+    function triggerCosmeticCycle() {
+      alert("Mode 2 Activated!\n\nSwitching to 3-5Hz High-Shear Resonant Plunge.\nUsing retained 80°C heat to dissolve hydrogel tablet into the spent biomass...\n\nResult: Fresh Ayurvedic Face Mask created.");
+      document.getElementById("footer-status").textContent = "Cosmetic Mask Cycle complete.";
+    }
+
+    function resetFlowToStart() {
+      clearInterval(extractionInterval);
+      clearInterval(timerInterval);
+      document.getElementById("reduction-progress-bar").style.width = "0%";
+      document.getElementById("timer-bar").style.width = "100%";
+      switchScreen(1);
+      document.getElementById("footer-status").textContent = "Status: Waiting for pod";
+    }
+  </script>
+</body>
+</html>
